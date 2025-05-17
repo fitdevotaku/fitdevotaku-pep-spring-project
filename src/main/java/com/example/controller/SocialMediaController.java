@@ -21,7 +21,7 @@ public class SocialMediaController {
         this.messageService = messageService;
     }
 
-    // Register new account
+    // Register new account...
     @PostMapping("/register")
     public ResponseEntity<Account> register(@RequestBody Account account) {
         Account createdAccount = accountService.addAccount(account);
