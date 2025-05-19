@@ -27,6 +27,10 @@ public class MessageService {
         return messageRepository.findById(id).orElse(null);
     }
 
+    public List<Message> getMessagesByUser(int accountId) {
+        return messageRepository.findByPostedBy(accountId);
+    }
+
     public Message updateMessage(Message message) {
         if (messageRepository.existsById(message.getMessageId())) {  // <-- camelCase
             return messageRepository.save(message);
@@ -38,9 +42,18 @@ public class MessageService {
         messageRepository.deleteById(id);
     }
 
-    public List<Message> getMessagesByUser(int accountId) {
-        return messageRepository.findByAccountId(accountId);
+
+    public boolean deleteMessageById(int id) {
+
+        if (!messageRepository.existsById(id)) {
+            return false;
+        }
+
+        messageRepository.deleteById(id);
+        return true;
     }
+
+   
 }
 
 

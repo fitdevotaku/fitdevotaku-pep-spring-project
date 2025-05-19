@@ -4,7 +4,12 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import javax.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+
+import com.example.dto.MessageDTO;
 import com.example.entity.Account;
 import com.example.entity.Message;
 import com.example.service.AccountService;
@@ -28,7 +33,8 @@ public class SocialMediaController {
         if (createdAccount != null) {
             return ResponseEntity.ok(createdAccount);
         } else {
-            return ResponseEntity.status(400).build();
+            // returns the 409 duplicate user account message/status
+            return ResponseEntity.status(HttpStatus.CONFLICT).build(); 
         }
     }
 
@@ -45,11 +51,32 @@ public class SocialMediaController {
 
     // Create message
     @PostMapping("/messages")
-    public ResponseEntity<Message> createMessage(@RequestBody Message message) {
-        Message createdMsg = messageService.addMessage(message);
-        if (createdMsg != null) {
-            return ResponseEntity.ok(createdMsg);
+    public ResponseEntity<Message> createMessage(@Valid @RequestBody MessageDTO dto, BindingResult result) {
+        // Bean-validation check
+        if (result.hasErrors()) {
+            return ResponseEntity.status(400).build();
+        }
+
+        // User existence check
+        Integer userId = dto.getPostedBy();
+        if (accountService.getAccountById(userId) == null) {
+            // test expects 400 when that user isn't in the DB
+            return ResponseEntity.status(400).build();
+        }
+
+        // Map DTO → Entity
+        Message msg = new Message();
+        msg.setPostedBy(userId);
+        msg.setMessageText(dto.getMessageText());
+        msg.setTimePostedEpoch(dto.getTimePostedEpoch());
+
+        // Save
+        Message created = messageService.addMessage(msg);
+
+        if (created != null) {
+            return ResponseEntity.ok(created);
         } else {
+            // fallback to 400 if, for whatever reason, save fails
             return ResponseEntity.status(400).build();
         }
     }
@@ -73,12 +100,17 @@ public class SocialMediaController {
 
     // Update message by id
     @PatchMapping("/messages/{id}")
-    public ResponseEntity<Message> updateMessage(@PathVariable("id") int id, @RequestBody Message message) {
+    public ResponseEntity<Integer> updateMessage(@PathVariable("id") int id, @RequestBody Message message) {
+        String txt = message.getMessageText(); // validation 400 if text is empty or exceeds 255 characters
+        if (txt == null || txt.trim().isEmpty() || txt.length() > 255) {
+            return ResponseEntity.status(400).build();
+        }
+        // set and update id
         message.setMessageId(id);
         Message updated = messageService.updateMessage(message);
+
         if (updated != null) {
-            Message fresh = messageService.getMessageById(id);
-            return ResponseEntity.ok(fresh);
+            return ResponseEntity.ok(1);
         } else {
             return ResponseEntity.status(400).build();
         }
@@ -86,14 +118,18 @@ public class SocialMediaController {
 
     // Delete message by id
     @DeleteMapping("/messages/{id}")
-    public ResponseEntity<Message> deleteMessage(@PathVariable("id") int id) {
-        Message toDelete = messageService.getMessageById(id);
-        messageService.deleteMessage(id);
-        if (toDelete != null) {
-            return ResponseEntity.ok(toDelete);
-        } else {
-            return ResponseEntity.ok().build(); // empty body
+    public ResponseEntity<Integer> deleteMessage(@PathVariable("id") int id) {
+        // searching for messages
+        Message msg = messageService.getMessageById(id);
+        
+        // nothing to delete, cant find id
+        if (msg == null) {
+            return ResponseEntity.ok().build();
         }
+        // delete the entity -- success
+        messageService.deleteMessage(id);
+        return ResponseEntity.ok(1);
+
     }
 
     // Get all messages by user accountId

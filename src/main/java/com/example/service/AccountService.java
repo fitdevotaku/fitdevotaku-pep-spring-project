@@ -24,4 +24,9 @@ public class AccountService {
     public Account login(String username, String password) {
         return accountRepository.findByUsernameAndPassword(username, password).orElse(null);
     }
+
+    // return account with the given id or null if none existent 
+    public Account getAccountById(Integer id) {
+        return accountRepository.findById(id).orElse(null);
+    }
 }
