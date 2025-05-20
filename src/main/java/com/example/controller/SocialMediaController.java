@@ -100,20 +100,17 @@ public class SocialMediaController {
 
     // Update message by id
     @PatchMapping("/messages/{id}")
-    public ResponseEntity<Integer> updateMessage(@PathVariable("id") int id, @RequestBody Message message) {
-        String txt = message.getMessageText(); // validation 400 if text is empty or exceeds 255 characters
-        if (txt == null || txt.trim().isEmpty() || txt.length() > 255) {
-            return ResponseEntity.status(400).build();
-        }
-        // set and update id
-        message.setMessageId(id);
-        Message updated = messageService.updateMessage(message);
+    public ResponseEntity<Integer> updateMessage(@PathVariable("id") int id, @RequestBody Message payload) {
 
-        if (updated != null) {
-            return ResponseEntity.ok(1);
-        } else {
-            return ResponseEntity.status(400).build();
-        }
+       payload.setMessageId(id);
+       boolean updated = messageService.updateMessage(payload);
+
+       if (updated) {
+            return ResponseEntity.ok(id); 
+       } else {
+            // validation failed-- id also could not be found
+            return ResponseEntity.badRequest().build(); // 400
+       }
     }
 
     // Delete message by id

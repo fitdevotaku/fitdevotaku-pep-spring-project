@@ -1,6 +1,9 @@
 package com.example.service;
 
 import java.util.List;
+
+import javax.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.example.entity.Message;
@@ -30,12 +33,19 @@ public class MessageService {
     public List<Message> getMessagesByUser(int accountId) {
         return messageRepository.findByPostedBy(accountId);
     }
+    @Transactional
+    public boolean updateMessage(Message msg) {
 
-    public Message updateMessage(Message message) {
-        if (messageRepository.existsById(message.getMessageId())) {  // <-- camelCase
-            return messageRepository.save(message);
+        String txt = msg.getMessageText();
+        if (txt == null || txt.trim().isEmpty() || txt.length() > 255) {  // <-- camelCase
+            return false;
         }
-        return null;
+
+        if (!messageRepository.existsById(msg.getMessageId())) {
+            return false;
+        }
+        messageRepository.save(msg);
+        return true;
     }
 
     public void deleteMessage(int id) {
